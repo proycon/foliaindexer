@@ -5,7 +5,7 @@
 #AM_CXXFLAGS = -DSYSCONF_PATH=\"$(SYSCONFDIR)\"
 
 bin_PROGRAMS = foliaindexer
-foliaindexer_CPPFLAGS = $(BOOST_CPPFLAGS)
+foliaindexer_CPPFLAGS = $(BOOST_CPPFLAGS) -Wall -std=c++11
 foliaindexer_LDFLAGS = $(BOOST_FILESYSTEM_LDFLAGS)
 foliaindexer_LIBS = $(BOOST_FILESYSTEM_LIBS)
 
