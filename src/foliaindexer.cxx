@@ -40,7 +40,7 @@ bool istokenannotation(folia::FoliaElement * e) {
 }
 
 
-void printelement(folia::FoliaElement * e, folia::FoliaElement * parent, unsigned int parentkey, folia::FoliaElement * next, folia::FoliaElement * prev, unordered_map<size_t, unsigned int> & keys) {
+void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia::FoliaElement * next, folia::FoliaElement * prev, unordered_map<size_t, unsigned int> & keys) {
     const unsigned int key = keys[(size_t) e];
     if (e->isinstance(folia::WordReference_t)) {
 
@@ -71,13 +71,13 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent, unsigne
             string prev_s = "NULL";
             if (prev != NULL) prev_s = keys[(size_t) prev];
 
-            string text = "NULL";
+            UnicodeString text = "NULL";
             if (e->printable()) text = e->text();
 
 
 
 
-            *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << parentkey << delimiter << parenttype << delimiter << typepath << delimiter << next_s << delimiter << prev_s << delimiter << text <<  e->set() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << e->annotatortype() << endl;
+            *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << parentkey << delimiter << parenttype << delimiter << typepath << delimiter << next_s << delimiter << prev_s << delimiter << text <<  e->sett() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << e->annotatortype() << endl;
 
             if (isstructureannotation(parent) &&  istokenannotation(e)) {
                 *f_annotations << parentkey << "\t" << key << endl;                
@@ -106,19 +106,19 @@ void processelement(folia::FoliaElement * e, unordered_map<size_t, unsigned int>
 
         if (e2->isinstance(folia::Correction_t)) {
             e2 = e2->getNew();
-            if (e2 != NULL) processelement(e2, keys);
+            if (e2 != NULL) processelement(e2, keys, e);
 
         } else if (e2->isinstance(folia::AnnotationLayer_t)) {
             //layers themselves need not be included
-            processelement(e2, keys);
+            processelement(e2, keys, e);
                     
         } else if ((!e2->isinstance(folia::TextContent_t)) && (!e2->isinstance(folia::Alternative_t)) && (!e2->isinstance(folia::Alternatives_t)))  { 
 
-            folia::FoliaElement * next = (i < size() - 1 ? (*e)[i+1] : NULL);
+            folia::FoliaElement * next = (i < e->size() - 1 ? (*e)[i+1] : NULL);
             folia::FoliaElement * prev = (i > 0) ? (*e)[i-1] : NULL;
 
-            printelement(e2, key, (overrideparent != NULL) ? overrideparent : e, next, prev, keys);
-            processelement(e2)
+            printelement(e2,(overrideparent != NULL) ? overrideparent : e, next, prev, keys);
+            processelement(e2, keys);
             
         }
     }
@@ -130,24 +130,25 @@ void processfile(const string & file) {
     folia::Document doc;
     doc.readFromFile(file);
     for (int i = 0; i < doc.size(); i++) {
-        folia::FoliaElement e = doc[i];
-        processelement(e);
-        
+        folia::FoliaElement * e = doc[i];
+        unordered_map<size_t, unsigned int> keys;
+        processelement(e, keys);
     }
 }
 
 
 int processdir(const string & dir) {
   cerr << "Processing directory " << dir << endl;
-  counter = 0;
+  int counter = 0;
 
   if ( !boost::filesystem::exists( dir ) ) return false;
-  boost::filesystem::exists directory_iterator end_itr; // default construction yields past-the-end
-  for ( boost::filesystem::directory_iterator itr( dir_path ); itr != end_itr; ++itr ) {
+  boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
+  for ( boost::filesystem::directory_iterator itr( dir ); itr != end_itr; ++itr ) {
     if (  boost::filesystem::is_directory(itr->status()) ) {
-      counter += processdir( itr->path() );
-    } else if (( itr->leaf() != ".") && (itr->lead() != ".." )) {
-      processfile( itr->path() )
+      const string d = itr->path().string();
+      counter += processdir( d );
+    } else if (( itr->path().filename().string() != ".") && (itr->path().filename().string() != ".." )) {
+      processfile( itr->path().string() );
       counter++;
     }
   }
@@ -171,10 +172,10 @@ int main( int argc, char* argv[] ){
         outputmode = CSV;
     } else if (f == "--tab") {
         outputmode = TAB;
-        delimiter = "\t"
+        delimiter = "\t";
     } else {
         boost::filesystem::path fp(argv[i]);
-        if (boost::filesystem::exists(fp))
+        if (boost::filesystem::exists(fp)) {
             if (boost::filesystem::is_directory(fp))  {
                 processdir(f);
             } else {
@@ -183,6 +184,7 @@ int main( int argc, char* argv[] ){
         } else {
             cerr << "ERROR: File or directory " << f << " does not exist" << endl;
         }
+    }
   }
 
   exit(0);
