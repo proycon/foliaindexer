@@ -84,6 +84,7 @@ fi
 
 BOOST_REQUIRE([1.34])
 dnl Then look for specific Boost libraries you need:
+BOOST_SYSTEM
 BOOST_FILESYSTEM
 
 #PKG_CHECK_MODULES([XML2], [libxml-2.0 >= 2.6.16] )
