@@ -35,6 +35,10 @@ AC_SUBST([LIBTOOL_DEPS])
 # when running tests, use CXX
 AC_LANG([C++])
 
+
+
+
+
 # Checks for libraries.
 
 if test $prefix = "NONE"; then
@@ -77,6 +81,11 @@ fi
 #  AC_MSG_ERROR("ICU support is required")
 #fi
 
+
+BOOST_REQUIRE([1.34])
+dnl Then look for specific Boost libraries you need:
+BOOST_FILESYSTEM
+
 #PKG_CHECK_MODULES([XML2], [libxml-2.0 >= 2.6.16] )
 #CXXFLAGS="$CXXFLAGS $XML2_CFLAGS"
 #LIBS="$LIBS $XML2_LIBS"
@@ -109,6 +118,5 @@ LIBS="$folia_LIBS $LIBS"
 AC_OUTPUT([
   Makefile
   foliaindexer.pc
-  m4/Makefile
   src/Makefile
 ])
