@@ -60,26 +60,26 @@ if test "x$PKG_CONFIG_PATH" = x; then
     export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
 fi
 
-#useICU=1;
+useICU=1;
 # inspired by feh-1.3.4/configure.ac.  Tnx Tom Gilbert and feh hackers.
-#AC_ARG_WITH(icu,
-#       [  --with-icu=DIR       use ICU installed in <DIR>],
-#       [if test "$with_icu" = "no"; then
-#           useICU=0
-#	else
-#	   CXXFLAGS="$CXXFLAGS -I$withval/include"
-#           LIBS="-L$withval/lib $LIBS"
-#	fi] )
+AC_ARG_WITH(icu,
+       [  --with-icu=DIR       use ICU installed in <DIR>],
+       [if test "$with_icu" = "no"; then
+           useICU=0
+	else    
+         CXXFLAGS="$CXXFLAGS -I$withval/include"
+        LIBS="-L$withval/lib $LIBS"
+    fi] )
 
-#if test "$useICU" = "1"; then
-#  AX_ICU_CHECK( [3.6],
-#		[CXXFLAGS="$CXXFLAGS $ICU_CPPSEARCHPATH"
-#		LIBS="$ICU_LIBPATH $ICU_LIBS $ICU_IOLIBS $LIBS"],
-#		[AC_MSG_FAILURE( "No ICU development environment found. Please check if libicu-dev or the like is installed" )] )
-#  AC_DEFINE(HAVE_ICU, 1, we want to use ICU )
-#else
-#  AC_MSG_ERROR("ICU support is required")
-#fi
+if test "$useICU" = "1"; then
+    AX_ICU_CHECK( [3.6],
+	[CXXFLAGS="$CXXFLAGS $ICU_CPPSEARCHPATH"
+	LIBS="$ICU_LIBPATH $ICU_LIBS $ICU_IOLIBS $LIBS"],
+	[AC_MSG_FAILURE( "No ICU development environment found. Please check if libicu-dev or the like is installed" )] )
+     AC_DEFINE(HAVE_ICU, 1, we want to use ICU )
+else
+  AC_MSG_ERROR("ICU support is required")
+fi
 
 
 BOOST_REQUIRE([1.34])
@@ -118,5 +118,6 @@ LIBS="$folia_LIBS $LIBS"
 AC_OUTPUT([
   Makefile
   foliaindexer.pc
+  m4/Makefile
   src/Makefile
 ])

@@ -6,7 +6,9 @@
 #include <sys/stat.h>
 #include <unordered_map>
 #include "boost/filesystem.hpp"
+#include "unicode/unistr.h"
 #include "libfolia/document.h"
+#include "libfolia/folia.h"
 
 using namespace std;
 
@@ -14,8 +16,8 @@ enum OutputMode { TAB, CSV, MYSQL } outputmode = TAB;
 
 unsigned int currentkey = 0;
 string delimiter = "";
-ostream * f_elements = (ostream *) cout;
-ostream * f_annotations = (ostream *) cout;
+ostream * f_elements = (ostream *) &cout;
+ostream * f_annotations = (ostream *) &cout;
 
 
 void usage(){
@@ -24,25 +26,25 @@ void usage(){
 
 
 void maketypepath(folia::FoliaElement * e, string & path) {
-    path = e->xmltag() + "/" + path
-    if (e->parent() != NULL) makepath(e->parent(),path);
+    path = e->xmltag() + "/" + path;
+    if (e->parent() != NULL) maketypepath(e->parent(),path);
 }
 
-void isstructureannotation(folia::FoliaElement * e) {
+bool isstructureannotation(folia::FoliaElement * e) {
     //TODO: move to libfolia
-    return ((e->elementtype() >= folia::Text_t) && (e->elementtype() <= folia::Quote_t));
+    return ((e->element_id() >= folia::Text_t) && (e->element_id() <= folia::Quote_t));
 }
 
-void istokenannotation(folia:FoliaElement * e) {
-    return ((e->elementtype() >= folia::Pos_t) && (e->elementtype() <= folia::Metric_t));
+bool istokenannotation(folia::FoliaElement * e) {
+    return ((e->element_id() >= folia::Pos_t) && (e->element_id() <= folia::Metric_t));
 }
 
 
-void printelement(folia::FoliaElement * e, folia::FoliaElement * parent, unsigned int parentkey = 0, folia::FoliaElement * next = NULL, folia::FoliaElement * prev = NULL, unordered_map<size_t, unsigned int> & keys) {
+void printelement(folia::FoliaElement * e, folia::FoliaElement * parent, unsigned int parentkey, folia::FoliaElement * next, folia::FoliaElement * prev, unordered_map<size_t, unsigned int> & keys) {
     const unsigned int key = keys[(size_t) e];
-    if (e->isinstance(WordReference_t)) {
+    if (e->isinstance(folia::WordReference_t)) {
 
-        folia::FoliaElement word = (e->doc()->index(e->id()));
+        folia::FoliaElement * word = (e->doc()->index(e->id()));
         unsigned int wordkey = keys[(size_t) word];
 
         *f_annotations << wordkey << "\t" << key << endl;
@@ -51,7 +53,7 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent, unsigne
     } else {
 
 
-        if (outputmode == COLUMNS) {
+        if (outputmode == TAB) {
             // key     id     type     parentkey   parenttype    typepath  next    previous    text   set     cls     annotator   annotatortype  datetime 
             string parenttype = "folia";
             unsigned int parentkey = 0;
@@ -63,7 +65,19 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent, unsigne
             maketypepath(parent, typepath);
 
 
-            *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << (parentkey ? parentkey : "NULL") << delimiter << parenttype << delimiter << typepath << delimiter << (((next != NULL) ? keys[(size_t) next] : "NULL") << delimiter << (prev != NULL) ? keys[(size_t) prev] : "NULL") << delimiter << (e->PRINTABLE ? e->text() : "NULL") <<  e->set() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << e->annotatortype() << endl;
+            string next_s = "NULL";
+            if (next != NULL) next_s = keys[(size_t) next];
+
+            string prev_s = "NULL";
+            if (prev != NULL) prev_s = keys[(size_t) prev];
+
+            string text = "NULL";
+            if (e->printable()) text = e->text();
+
+
+
+
+            *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << parentkey << delimiter << parenttype << delimiter << typepath << delimiter << next_s << delimiter << prev_s << delimiter << text <<  e->set() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << e->annotatortype() << endl;
 
             if (isstructureannotation(parent) &&  istokenannotation(e)) {
                 *f_annotations << parentkey << "\t" << key << endl;                
