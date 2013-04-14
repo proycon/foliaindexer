@@ -8,5 +8,5 @@ SUBDIRS = src
 EXTRA_DIST = bootstrap AUTHORS ucto.pc.in
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = ucto.pc
+pkgconfig_DATA = foliaindexer.pc
 
