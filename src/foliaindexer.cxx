@@ -65,19 +65,24 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia:
             maketypepath(parent, typepath);
 
 
-            string next_s = "NULL";
-            if (next != NULL) next_s = keys[(size_t) next];
+            stringstream next_s;
+            if (next != NULL) next_s << keys[(size_t) next]; else next_s << "NULL";
 
-            string prev_s = "NULL";
-            if (prev != NULL) prev_s = keys[(size_t) prev];
+            stringstream prev_s;
+            if (prev != NULL) prev_s << keys[(size_t) prev]; else prev_s << "NULL";
 
             UnicodeString text = "NULL";
-            if (e->printable()) text = e->text();
+            if (e->printable()) {
+                try {
+                    text = e->text();
+                } catch (folia::NoSuchText &e) {};
+            }
 
 
 
 
-            *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << parentkey << delimiter << parenttype << delimiter << typepath << delimiter << next_s << delimiter << prev_s << delimiter << text <<  e->sett() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << e->annotatortype() << endl;
+
+            *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << (int) parentkey << delimiter << parenttype << delimiter << typepath << delimiter <<  next_s.str() << delimiter <<  prev_s.str() << delimiter << text << delimiter << e->sett() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << (int) e->annotatortype() << endl;
 
             if (isstructureannotation(parent) &&  istokenannotation(e)) {
                 *f_annotations << parentkey << "\t" << key << endl;                
