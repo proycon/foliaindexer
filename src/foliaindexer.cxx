@@ -12,7 +12,7 @@
 
 using namespace std;
 
-enum OutputMode { TAB, CSV, MYSQL } outputmode = TAB;
+enum OutputMode { TAB, CSV, SQLITE, MYSQL } outputmode = TAB;
 
 unsigned int currentkey = 0;
 string delimiter = "";
@@ -40,6 +40,14 @@ bool istokenannotation(folia::FoliaElement * e) {
 }
 
 
+void preparedb() {
+    if (outputmode == SQLITE) {
+        *f_elements << "create table elements('key' int primary key, 'id' varchar(255), 'type' varchar(50), 'parentkey' int, 'parenttype' varchar(50), 'typepath' text, 'next' int, 'previous' int, 'set' varchar(255), 'cls' varchar(255), annotator varchar(255), annotatortype boolean);" << endl;
+        *f_annotations << "create table annotations('key' int primary key, 'annotationkey' int);" << endl;
+    }
+
+}
+
 void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia::FoliaElement * next, folia::FoliaElement * prev, unordered_map<size_t, unsigned int> & keys) {
     const unsigned int key = keys[(size_t) e];
     if (e->isinstance(folia::WordReference_t)) {
@@ -53,7 +61,6 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia:
     } else {
 
 
-        if (outputmode == TAB) {
             // key     id     type     parentkey   parenttype    typepath  next    previous    text   set     cls     annotator   annotatortype  datetime 
             string parenttype = "folia";
             unsigned int parentkey = 0;
@@ -78,17 +85,28 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia:
                 } catch (folia::NoSuchText &e) {};
             }
 
-
-
-
-
-            *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << (int) parentkey << delimiter << parenttype << delimiter << typepath << delimiter <<  next_s.str() << delimiter <<  prev_s.str() << delimiter << text << delimiter << e->sett() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << (int) e->annotatortype() << endl;
-
-            if (isstructureannotation(parent) &&  istokenannotation(e)) {
-                *f_annotations << parentkey << "\t" << key << endl;                
+            string annotatortype; 
+            if (e->annotatortype() == folia::AnnotatorType::MANUAL) {
+                annotatortype = "0";
+            } else {
+                annotatortype = "1";
             }
 
 
+
+
+        if (outputmode == TAB) {
+            *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << (int) parentkey << delimiter << parenttype << delimiter << typepath << delimiter <<  next_s.str() << delimiter <<  prev_s.str() << delimiter << text << delimiter << e->sett() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << annotatortype << endl;
+        } else if (outputmode == SQLITE) {
+            *f_elements << "insert into elements values(" << key << ",'" << e->id() << "','" << e->xmltag() <<"'," << (int) parentkey << ",'" << parenttype <<  "','" << typepath << "',"  <<  next_s.str() <<  "," <<  prev_s.str() << ",'" << text << "','" << e->sett() <<  "','" << e->cls() <<  "','" << e->annotator() <<  "'," << annotatortype << ");" << endl;
+        }
+
+        if (isstructureannotation(parent) &&  istokenannotation(e)) {
+            if (outputmode == TAB) {
+                *f_annotations << parentkey << "\t" << key << endl;                
+            } else if (outputmode == SQLITE) {
+                *f_annotations << "insert into annotations values("<< parentkey << "," << key << ");" << endl;                
+            }
         }
     }
 }
@@ -98,7 +116,7 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia:
 void processelement(folia::FoliaElement * e, unordered_map<size_t, unsigned int> & keys, folia::FoliaElement * overrideparent = NULL) {
 
     //reserve IDs
-    for (int i = 0; i < e->size(); i++) {
+    for (size_t i = 0; i < e->size(); i++) {
         folia::FoliaElement * e2 = (*e)[i];
         if (keys.count((size_t) e2) == 0) {
             currentkey++;
@@ -106,7 +124,7 @@ void processelement(folia::FoliaElement * e, unordered_map<size_t, unsigned int>
         }
     }
 
-    for (int i = 0; i < e->size(); i++) {
+    for (size_t i = 0; i < e->size(); i++) {
         folia::FoliaElement * e2 = (*e)[i];
 
         if (e2->isinstance(folia::Correction_t)) {
@@ -173,12 +191,15 @@ int main( int argc, char* argv[] ){
     const string f = argv[i];
     if (f == "--mysql") {
         outputmode = MYSQL;
+    } else if (f == "--sqlite") {
+        outputmode = SQLITE;
     } else if (f == "--csv") {
         outputmode = CSV;
     } else if (f == "--tab") {
         outputmode = TAB;
         delimiter = "\t";
     } else {
+        preparedb();
         boost::filesystem::path fp(argv[i]);
         if (boost::filesystem::exists(fp)) {
             if (boost::filesystem::is_directory(fp))  {
