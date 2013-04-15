@@ -42,20 +42,27 @@ bool istokenannotation(folia::FoliaElement * e) {
 
 void preparedb() {
     if (outputmode == SQLITE) {
-        *f_elements << "create table elements('key' int primary key, 'id' varchar(255), 'type' varchar(50), 'parentkey' int, 'parenttype' varchar(50), 'typepath' text, 'next' int, 'previous' int, 'set' varchar(255), 'cls' varchar(255), annotator varchar(255), annotatortype boolean);" << endl;
-        *f_annotations << "create table annotations('key' int primary key, 'annotationkey' int);" << endl;
+        *f_elements << "create table elements('key' int primary key, 'id' varchar(255), 'type' varchar(50), 'parentkey' int, 'parenttype' varchar(50), 'typepath' text, 'next' int, 'previous' int, 'text' text, 'set' varchar(255), 'cls' varchar(255), annotator varchar(255), annotatortype boolean);" << endl;
+        *f_annotations << "create table annotations('key' int, 'annotationkey' int, primary key ('key','annotationkey'));" << endl;
     }
 
 }
 
 string sqlwrapescape(string s) {
     if ((s.empty()) || (s == "NULL")) return "NULL";
-    if ((s.find('\'') != string::npos)) {
+    if ((s.find('\'') != string::npos)) { // || (s.find('\n') != string::npos)) {
         string s2 = "";
+        s2.reserve(s.size());
         for (int i = 0; i < s.size(); i++) {
-            if (s[i] == '\'') s2 += "\\'"; else s2 += s[i];
+            if (s[i] == '\'') {
+                s2 += "''"; 
+            //} else if (s[i] == '\n') {
+            //    s2 += "\\n";
+            } else {
+                s2 += s[i];
+            }
         }
-        return s2;
+        return "'" + s2 + "'";
     }
     return "'" + s + "'";
 
