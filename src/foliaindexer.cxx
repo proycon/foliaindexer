@@ -48,6 +48,21 @@ void preparedb() {
 
 }
 
+string sqlwrapescape(string s) {
+    if ((s.empty()) || (s == "NULL")) return "NULL";
+    if ((s.find('\'') != string::npos)) {
+        string s2 = "";
+        for (int i = 0; i < s.size(); i++) {
+            if (s[i] == '\'') s2 += "\\'"; else s2 += s[i];
+        }
+        return s2;
+    }
+    return "'" + s + "'";
+
+}
+
+
+
 void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia::FoliaElement * next, folia::FoliaElement * prev, unordered_map<size_t, unsigned int> & keys) {
     const unsigned int key = keys[(size_t) e];
     if (e->isinstance(folia::WordReference_t)) {
@@ -84,6 +99,9 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia:
                     text = e->text();
                 } catch (folia::NoSuchText &e) {};
             }
+            stringstream text_ss;
+            text_ss << text;
+            string text_s = text_ss.str();
 
             string annotatortype; 
             if (e->annotatortype() == folia::AnnotatorType::MANUAL) {
@@ -98,7 +116,7 @@ void printelement(folia::FoliaElement * e, folia::FoliaElement * parent,  folia:
         if (outputmode == TAB) {
             *f_elements << key << delimiter << e->id() << delimiter << e->xmltag() << delimiter << (int) parentkey << delimiter << parenttype << delimiter << typepath << delimiter <<  next_s.str() << delimiter <<  prev_s.str() << delimiter << text << delimiter << e->sett() << delimiter << e->cls() << delimiter << e->annotator() << delimiter << annotatortype << endl;
         } else if (outputmode == SQLITE) {
-            *f_elements << "insert into elements values(" << key << ",'" << e->id() << "','" << e->xmltag() <<"'," << (int) parentkey << ",'" << parenttype <<  "','" << typepath << "',"  <<  next_s.str() <<  "," <<  prev_s.str() << ",'" << text << "','" << e->sett() <<  "','" << e->cls() <<  "','" << e->annotator() <<  "'," << annotatortype << ");" << endl;
+            *f_elements << "insert into elements values(" << key << "," << sqlwrapescape(e->id()) << "," << sqlwrapescape(e->xmltag()) <<"," << (int) parentkey << "," << sqlwrapescape(parenttype) <<  "," << sqlwrapescape(typepath) << ","  << next_s.str() <<  "," <<  prev_s.str() << "," <<  sqlwrapescape(text_s) << "," << sqlwrapescape(e->sett()) <<  "," << sqlwrapescape(e->cls()) <<  "," << sqlwrapescape(e->annotator()) <<  "," << annotatortype << ");" << endl;
         }
 
         if (isstructureannotation(parent) &&  istokenannotation(e)) {
